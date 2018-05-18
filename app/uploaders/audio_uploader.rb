@@ -1,11 +1,13 @@
+require "carrierwave/storage/fog"
+
 class AudioUploader < CarrierWave::Uploader::Base
   # Include RMagick or MiniMagick support:
   # include CarrierWave::RMagick
   # include CarrierWave::MiniMagick
 
   # Choose what kind of storage to use for this uploader:
-  storage :file
-  # storage :fog
+  # storage :file
+  storage :fog
 
   # Override the directory where uploaded files will be stored.
   # This is a sensible default for uploaders that are meant to be mounted:
@@ -15,18 +17,20 @@ class AudioUploader < CarrierWave::Uploader::Base
 
   process :generate_mp3
 
+  UPLOAD_EXTENSION = ".webm"
   def generate_mp3
-    temp_path = current_path.gsub(".webm", ".mp3")
-    # ffmpeg -i inputfile.wav -acodec libmp3lame -f mp3 watermarked.mp3
-    `ffmpeg -i "#{current_path}" -sn -y -acodec libmp3lame -aq 4 -f mp3 "#{temp_path}"`
+    temp_path = current_path.gsub(UPLOAD_EXTENSION, ".copy#{UPLOAD_EXTENSION}")
+    self.file.copy!(temp_path)
+    self.file.move_to(current_path.gsub(UPLOAD_EXTENSION, ".mp3"))
     File.unlink(current_path)
-    FileUtils.mv(temp_path, current_path)
+    # ffmpeg -i inputfile.wav -acodec libmp3lame -f mp3 watermarked.mp3
+    `ffmpeg -i "#{temp_path}" -sn -y -acodec libmp3lame -aq 4 -f mp3 "#{current_path}"`
+    self.file.content_type = ::MIME::Types.type_for(current_path).first.to_s
   end
 
   def full_filename(for_file)
     super.chomp(File.extname(super)) + '.mp3'
   end
-
   # Provide a default URL as a default if there hasn't been a file uploaded:
   # def default_url(*args)
   #   # For Rails 3.1+ asset pipeline compatibility:

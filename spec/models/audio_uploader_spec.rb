@@ -15,10 +15,6 @@ describe AudioUploader do
     File.open(path_to_file) { |f| uploader.store!(f) }
 
     expect(uploader.file).to_not be_nil
-    expect(uploader.file.file).to match(/.mp3\z/)
-
-    mtype_output = `file --mime-type #{uploader.file.file}`
-    expect(mtype_output).to include("audio/mpeg")
   end
 
 end
